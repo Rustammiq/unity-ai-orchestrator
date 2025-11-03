@@ -20,6 +20,7 @@ public class MCPClient
     private readonly bool useStdio;
     private System.Diagnostics.Process stdioProcess;
     private readonly Queue<string> responseQueue = new Queue<string>();
+    private readonly Queue<string> errorQueue = new Queue<string>();
     private int requestIdCounter = 1;
     private readonly object lockObject = new object();
 
@@ -84,8 +85,11 @@ public class MCPClient
                 return false;
             }
 
-            // Start reading output
+            // Start reading output and error streams
             _ = Task.Run(() => ReadStdioOutput(), ct);
+            _ = Task.Run(() => ReadStdioError(), ct);
+
+            Debug.Log($"MCPClient: Started process '{serverCommand}' with args '{serverArgs}'");
 
             // Initialize protocol handshake
             var initRequest = new MCPRequest
@@ -148,15 +152,51 @@ public class MCPClient
                 var line = await stdioProcess.StandardOutput.ReadLineAsync();
                 if (line == null) break;
 
-                lock (lockObject)
+                if (!string.IsNullOrWhiteSpace(line))
                 {
-                    responseQueue.Enqueue(line);
+                    Debug.Log($"MCPClient: Received output: {line}");
+                    lock (lockObject)
+                    {
+                        responseQueue.Enqueue(line);
+                    }
                 }
+            }
+            
+            if (stdioProcess.HasExited)
+            {
+                Debug.LogWarning($"MCPClient: Process exited with code {stdioProcess.ExitCode}");
+                IsConnected = false;
             }
         }
         catch (Exception ex)
         {
             Debug.LogError($"MCPClient stdio read error: {ex.Message}");
+            IsConnected = false;
+        }
+    }
+
+    private async Task ReadStdioError()
+    {
+        try
+        {
+            while (!stdioProcess.HasExited && stdioProcess.StandardError != null)
+            {
+                var line = await stdioProcess.StandardError.ReadLineAsync();
+                if (line == null) break;
+
+                if (!string.IsNullOrWhiteSpace(line))
+                {
+                    Debug.LogWarning($"MCPClient: Process error: {line}");
+                    lock (lockObject)
+                    {
+                        errorQueue.Enqueue(line);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"MCPClient stderr read error: {ex.Message}");
         }
     }
 
@@ -341,42 +381,116 @@ public class MCPClient
 
     private async Task<MCPResponse> SendStdioRequestAsync(MCPRequest request, CancellationToken ct)
     {
+        // Check if process is still running
+        if (stdioProcess.HasExited)
+        {
+            Debug.LogError($"MCPClient: Process has exited, cannot send request");
+            IsConnected = false;
+            return null;
+        }
+
         // Build JSON manually for Unity compatibility (JsonUtility doesn't handle Dictionary<string, object> well)
         var json = BuildJsonRequest(request);
         var id = request.id;
 
+        Debug.Log($"MCPClient: Sending request (id={id}, method={request.method}): {json}");
+
         lock (lockObject)
         {
-            stdioProcess.StandardInput.WriteLine(json);
-            stdioProcess.StandardInput.Flush();
+            try
+            {
+                stdioProcess.StandardInput.WriteLine(json);
+                stdioProcess.StandardInput.Flush();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"MCPClient: Failed to write to stdin: {ex.Message}");
+                IsConnected = false;
+                return null;
+            }
         }
 
         // Wait for response
         var timeout = DateTime.Now.AddSeconds(30);
+        var lastErrorCheck = DateTime.Now;
+        
         while (DateTime.Now < timeout && !ct.IsCancellationRequested)
         {
             await Task.Yield();
+            
+            // Check for process errors periodically
+            if ((DateTime.Now - lastErrorCheck).TotalSeconds > 2)
+            {
+                lastErrorCheck = DateTime.Now;
+                if (stdioProcess.HasExited)
+                {
+                    Debug.LogError($"MCPClient: Process exited while waiting for response (id={id})");
+                    IsConnected = false;
+                    
+                    // Check if there are error messages
+                    lock (lockObject)
+                    {
+                        var errors = new List<string>();
+                        while (errorQueue.Count > 0)
+                        {
+                            errors.Add(errorQueue.Dequeue());
+                        }
+                        if (errors.Count > 0)
+                        {
+                            Debug.LogError($"MCPClient: Process errors: {string.Join("\n", errors)}");
+                        }
+                    }
+                    return null;
+                }
+            }
             
             lock (lockObject)
             {
                 if (responseQueue.Count > 0)
                 {
                     var responseJson = responseQueue.Dequeue();
+                    Debug.Log($"MCPClient: Received response: {responseJson}");
+                    
                     try
                     {
                         // Try to parse JSON response
                         var response = ParseJsonResponse(responseJson);
                         if (response?.id == id)
                         {
+                            Debug.Log($"MCPClient: Matched response for id={id}");
                             return response;
+                        }
+                        else if (response?.id != null && response.id != id)
+                        {
+                            // Response for different ID - put it back at the front to process later
+                            var tempQueue = new Queue<string>();
+                            tempQueue.Enqueue(responseJson);
+                            while (responseQueue.Count > 0)
+                            {
+                                tempQueue.Enqueue(responseQueue.Dequeue());
+                            }
+                            while (tempQueue.Count > 0)
+                            {
+                                responseQueue.Enqueue(tempQueue.Dequeue());
+                            }
+                            Debug.Log($"MCPClient: Response id mismatch (expected {id}, got {response.id}), queued for later");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"MCPClient: Response with no or null ID, ignoring");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogWarning($"MCPClient: Failed to parse response: {ex.Message}");
+                        Debug.LogWarning($"MCPClient: Failed to parse response: {ex.Message}\nJSON: {responseJson}");
                     }
                 }
             }
+        }
+
+        if (DateTime.Now >= timeout)
+        {
+            Debug.LogError($"MCPClient: Timeout waiting for response (id={id}, method={request.method})");
         }
 
         return null;
