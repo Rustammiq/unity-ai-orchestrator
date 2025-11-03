@@ -59,6 +59,10 @@ Een complete Blender MCP server is inbegrepen! Zie `Assets/MCP/BLENDER_MCP_READM
 - ✅ Python scripting (veiligheidsmodus beschikbaar)
 - ✅ Scene optimalisatie en cleanup
 - ✅ Pipeline recording voor Blender-acties
+- ✅ **Asset Management** (mark/clear/generate previews using ID.asset_*)
+- ✅ **Data Duplicatie** (copy() voor alle datablocks)
+- ✅ **Library Management** (make_local, library info using ID properties)
+- ✅ **Data Informatie** (comprehensive ID properties: users, library, assets, etc.)
 
 ## Gebruik
 

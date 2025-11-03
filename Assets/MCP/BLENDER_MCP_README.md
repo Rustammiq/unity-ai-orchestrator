@@ -67,6 +67,12 @@ De Blender MCP server ondersteunt de volgende operaties:
 - **create_animation**: Creëer keyframe animaties
 - Ondersteuning voor location, rotation, scale keyframes
 
+### Asset & Data Management (Nieuw - gebaseerd op ID API)
+- **manage_asset**: Mark/clear assets, genereer previews (ID.asset_mark/clear/generate_preview)
+- **copy_data**: Dupliceer datablocks (ID.copy())
+- **manage_library**: Make local, get library info (ID.make_local, ID.library)
+- **get_data_info**: Comprehensive datablock info (alle ID properties)
+
 ## Voorbeeld Gebruik
 
 ### Via Unity Orchestrator
@@ -173,6 +179,21 @@ Export the scene as GLTF to //exported_scene.gltf using selection only
 2. Voer meerdere Blender-acties uit via prompts
 3. Klik op "Stop Recording"
 4. Bekijk de opgenomen pipeline in `Assets/Pipelines/`
+
+### Voorbeeld 6: Asset Management
+```
+Mark een material als asset: Mark het "RedMaterial" material als asset in catalog "Materials/Red"
+```
+
+### Voorbeeld 7: Data Duplicatie
+```
+Dupliceer een object: Kopieer het "Cube" object naar "CubeCopy"
+```
+
+### Voorbeeld 8: Library Management
+```
+Maak data lokaal: Maak het gelinkte object "LinkedCube" lokaal
+```
 
 ## Unity Integration Code
 

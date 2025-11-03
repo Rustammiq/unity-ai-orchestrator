@@ -227,6 +227,58 @@ class BlenderMCPServer:
                     },
                     "required": ["object_name", "property"]
                 }
+            },
+            {
+                "name": "manage_asset",
+                "description": "Mark or unmark data as asset, generate previews",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data_type": {"type": "string", "enum": ["OBJECT", "MATERIAL", "MESH", "TEXTURE"]},
+                        "data_name": {"type": "string"},
+                        "action": {"type": "string", "enum": ["MARK_ASSET", "CLEAR_ASSET", "GENERATE_PREVIEW"]},
+                        "catalog_path": {"type": "string"}
+                    },
+                    "required": ["data_type", "data_name", "action"]
+                }
+            },
+            {
+                "name": "copy_data",
+                "description": "Duplicate any Blender datablock (object, material, mesh, etc.)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data_type": {"type": "string", "enum": ["OBJECT", "MATERIAL", "MESH", "TEXTURE", "COLLECTION"]},
+                        "source_name": {"type": "string"},
+                        "target_name": {"type": "string"}
+                    },
+                    "required": ["data_type", "source_name", "target_name"]
+                }
+            },
+            {
+                "name": "manage_library",
+                "description": "Make data local or get library information",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data_type": {"type": "string", "enum": ["OBJECT", "MATERIAL", "MESH", "TEXTURE"]},
+                        "data_name": {"type": "string"},
+                        "action": {"type": "string", "enum": ["MAKE_LOCAL", "GET_INFO"]}
+                    },
+                    "required": ["data_type", "data_name", "action"]
+                }
+            },
+            {
+                "name": "get_data_info",
+                "description": "Get detailed information about any Blender datablock",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data_type": {"type": "string", "enum": ["OBJECT", "MATERIAL", "MESH", "TEXTURE", "COLLECTION"]},
+                        "data_name": {"type": "string"}
+                    },
+                    "required": ["data_type", "data_name"]
+                }
             }
         ]
         
@@ -268,6 +320,14 @@ class BlenderMCPServer:
                 result = self.optimize_scene(arguments)
             elif tool_name == "create_animation":
                 result = self.create_animation(arguments)
+            elif tool_name == "manage_asset":
+                result = self.manage_asset(arguments)
+            elif tool_name == "copy_data":
+                result = self.copy_data(arguments)
+            elif tool_name == "manage_library":
+                result = self.manage_library(arguments)
+            elif tool_name == "get_data_info":
+                result = self.get_data_info(arguments)
             else:
                 return self.error_response(-32601, f"Unknown tool: {tool_name}")
             
@@ -508,7 +568,155 @@ class BlenderMCPServer:
             obj.keyframe_insert(data_path=property_name, frame=frame_num)
         
         return {"success": True, "keyframes": len(frames)}
-    
+
+    def manage_asset(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Manage asset marking and previews using ID methods"""
+        data_type = args.get("data_type").upper()
+        data_name = args.get("data_name")
+        action = args.get("action").upper()
+        catalog_path = args.get("catalog_path", "")
+
+        # Get the data block
+        data_collection = self._get_data_collection(data_type)
+        if data_name not in data_collection:
+            raise ValueError(f"{data_type} '{data_name}' not found")
+
+        data_block = data_collection[data_name]
+
+        if action == "MARK_ASSET":
+            data_block.asset_mark()
+            if catalog_path:
+                # Set asset catalog if provided
+                data_block.asset_data.catalog_id = catalog_path
+            return {"success": True, "action": "marked_as_asset", "name": data_name}
+
+        elif action == "CLEAR_ASSET":
+            data_block.asset_clear()
+            return {"success": True, "action": "cleared_asset", "name": data_name}
+
+        elif action == "GENERATE_PREVIEW":
+            data_block.asset_generate_preview()
+            return {"success": True, "action": "generated_preview", "name": data_name}
+
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def copy_data(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Duplicate any Blender datablock using ID.copy()"""
+        data_type = args.get("data_type").upper()
+        source_name = args.get("source_name")
+        target_name = args.get("target_name")
+
+        # Get the data block
+        data_collection = self._get_data_collection(data_type)
+        if source_name not in data_collection:
+            raise ValueError(f"{data_type} '{source_name}' not found")
+
+        source_data = data_collection[source_name]
+
+        # Create copy
+        copied_data = source_data.copy()
+        copied_data.name = target_name
+
+        return {
+            "success": True,
+            "action": "copied",
+            "source": source_name,
+            "target": target_name,
+            "type": data_type
+        }
+
+    def manage_library(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Make data local or get library information"""
+        data_type = args.get("data_type").upper()
+        data_name = args.get("data_name")
+        action = args.get("action").upper()
+
+        # Get the data block
+        data_collection = self._get_data_collection(data_type)
+        if data_name not in data_collection:
+            raise ValueError(f"{data_type} '{data_name}' not found")
+
+        data_block = data_collection[data_name]
+
+        if action == "MAKE_LOCAL":
+            data_block.make_local()
+            return {"success": True, "action": "made_local", "name": data_name}
+
+        elif action == "GET_INFO":
+            library_info = {
+                "name": data_block.name,
+                "library": data_block.library.filepath if data_block.library else None,
+                "users": data_block.users,
+                "use_fake_user": data_block.use_fake_user,
+                "is_library_indirect": data_block.is_library_indirect,
+                "is_missing": data_block.is_missing,
+                "is_embedded_data": data_block.is_embedded_data
+            }
+            return {"success": True, "info": library_info}
+
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def get_data_info(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Get detailed information about any Blender datablock using ID properties"""
+        data_type = args.get("data_type").upper()
+        data_name = args.get("data_name")
+
+        # Get the data block
+        data_collection = self._get_data_collection(data_type)
+        if data_name not in data_collection:
+            raise ValueError(f"{data_type} '{data_name}' not found")
+
+        data_block = data_collection[data_name]
+
+        # Get comprehensive info using ID properties
+        info = {
+            "name": data_block.name,
+            "name_full": getattr(data_block, 'name_full', data_block.name),
+            "users": data_block.users,
+            "use_fake_user": data_block.use_fake_user,
+            "use_extra_user": getattr(data_block, 'use_extra_user', False),
+            "library": data_block.library.filepath if data_block.library else None,
+            "is_library_indirect": data_block.is_library_indirect,
+            "is_missing": data_block.is_missing,
+            "is_embedded_data": data_block.is_embedded_data,
+            "is_editable": data_block.is_editable,
+            "is_evaluated": getattr(data_block, 'is_evaluated', False),
+            "session_uid": data_block.session_uid,
+            "tag": getattr(data_block, 'tag', False)
+        }
+
+        # Add type-specific information
+        if hasattr(data_block, 'asset_data') and data_block.asset_data:
+            info["asset_info"] = {
+                "is_asset": True,
+                "catalog_id": data_block.asset_data.catalog_id,
+                "description": data_block.asset_data.description
+            }
+        else:
+            info["asset_info"] = {"is_asset": False}
+
+        return {"success": True, "info": info}
+
+    def _get_data_collection(self, data_type: str):
+        """Helper method to get the appropriate data collection"""
+        collections = {
+            "OBJECT": bpy.data.objects,
+            "MATERIAL": bpy.data.materials,
+            "MESH": bpy.data.meshes,
+            "TEXTURE": bpy.data.textures,
+            "COLLECTION": bpy.data.collections,
+            "IMAGE": bpy.data.images,
+            "LIGHT": bpy.data.lights,
+            "CAMERA": bpy.data.cameras
+        }
+
+        if data_type not in collections:
+            raise ValueError(f"Unsupported data type: {data_type}")
+
+        return collections[data_type]
+
     def error_response(self, code: int, message: str, data: Optional[str] = None) -> Dict[str, Any]:
         """Create error response"""
         error = {
