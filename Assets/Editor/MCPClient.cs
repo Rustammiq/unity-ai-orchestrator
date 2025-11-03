@@ -247,10 +247,32 @@ public class MCPClient
                     if (content is List<object> contentList && contentList.Count > 0)
                     {
                         var firstItem = contentList[0];
-                        if (firstItem is Dictionary<string, object> contentDict && contentDict.ContainsKey("text"))
+                        if (firstItem is Dictionary<string, object> contentDict)
                         {
-                            return contentDict["text"].ToString();
+                            if (contentDict.ContainsKey("text"))
+                            {
+                                return contentDict["text"].ToString();
+                            }
+                            else if (contentDict.ContainsKey("type") && contentDict["type"].ToString() == "text")
+                            {
+                                // Try to get any text field
+                                foreach (var kvp in contentDict)
+                                {
+                                    if (kvp.Key != "type" && kvp.Value is string)
+                                    {
+                                        return kvp.Value.ToString();
+                                    }
+                                }
+                            }
                         }
+                        else if (firstItem is string)
+                        {
+                            return firstItem.ToString();
+                        }
+                    }
+                    else if (content is string)
+                    {
+                        return content.ToString();
                     }
                 }
                 
@@ -260,8 +282,32 @@ public class MCPClient
                     return response.result["text"].ToString();
                 }
                 
-                // Last resort: return the full result as string
-                return response.result.ToString();
+                // Try to find any string value in result
+                foreach (var kvp in response.result)
+                {
+                    if (kvp.Value is string str && !string.IsNullOrEmpty(str))
+                    {
+                        return str;
+                    }
+                }
+                
+                // Last resort: return JSON representation of result
+                var resultJson = new System.Text.StringBuilder();
+                resultJson.Append("{");
+                var first = true;
+                foreach (var kvp in response.result)
+                {
+                    if (!first) resultJson.Append(", ");
+                    resultJson.Append($"\"{kvp.Key}\": {kvp.Value}");
+                    first = false;
+                }
+                resultJson.Append("}");
+                return resultJson.ToString();
+            }
+
+            if (response?.error != null)
+            {
+                return $"MCP Error [{response.error.code}]: {response.error.message}";
             }
 
             return response != null ? "MCP server responded but no content found" : "No response from MCP server";
@@ -338,7 +384,7 @@ public class MCPClient
 
     private string BuildJsonRequest(MCPRequest request)
     {
-        // Simple JSON builder for Unity compatibility
+        // Improved JSON builder for Unity compatibility that handles nested structures
         var sb = new System.Text.StringBuilder();
         sb.Append("{");
         sb.Append($"\"jsonrpc\":\"{request.jsonrpc}\"");
@@ -349,76 +395,384 @@ public class MCPClient
         sb.Append($",\"method\":\"{request.method}\"");
         if (request.@params != null && request.@params.Count > 0)
         {
-            sb.Append(",\"params\":{");
-            var first = true;
-            foreach (var kvp in request.@params)
-            {
-                if (!first) sb.Append(",");
-                sb.Append($"\"{kvp.Key}\":");
-                if (kvp.Value is string str)
-                {
-                    sb.Append($"\"{str}\"");
-                }
-                else if (kvp.Value is Dictionary<string, object> dict)
-                {
-                    sb.Append("{");
-                    var dictFirst = true;
-                    foreach (var dkvp in dict)
-                    {
-                        if (!dictFirst) sb.Append(",");
-                        sb.Append($"\"{dkvp.Key}\":");
-                        if (dkvp.Value is string dstr)
-                        {
-                            sb.Append($"\"{dstr}\"");
-                        }
-                        else
-                        {
-                            sb.Append(dkvp.Value?.ToString() ?? "null");
-                        }
-                        dictFirst = false;
-                    }
-                    sb.Append("}");
-                }
-                else
-                {
-                    sb.Append(kvp.Value?.ToString() ?? "null");
-                }
-                first = false;
-            }
-            sb.Append("}");
+            sb.Append(",\"params\":");
+            sb.Append(SerializeValue(request.@params));
         }
         sb.Append("}");
         return sb.ToString();
     }
 
+    private string SerializeValue(object value)
+    {
+        if (value == null) return "null";
+        
+        if (value is string str)
+        {
+            // Escape special characters
+            str = str.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
+            return $"\"{str}\"";
+        }
+        else if (value is bool b)
+        {
+            return b ? "true" : "false";
+        }
+        else if (value is int || value is long || value is short || value is byte)
+        {
+            return value.ToString();
+        }
+        else if (value is float f)
+        {
+            return f.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        else if (value is double d)
+        {
+            return d.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        else if (value is System.Collections.ICollection collection)
+        {
+            var sb = new System.Text.StringBuilder("[");
+            var first = true;
+            foreach (var item in collection)
+            {
+                if (!first) sb.Append(",");
+                sb.Append(SerializeValue(item));
+                first = false;
+            }
+            sb.Append("]");
+            return sb.ToString();
+        }
+        else if (value is Dictionary<string, object> dict)
+        {
+            var sb = new System.Text.StringBuilder("{");
+            var first = true;
+            foreach (var kvp in dict)
+            {
+                if (!first) sb.Append(",");
+                sb.Append($"\"{kvp.Key}\":");
+                sb.Append(SerializeValue(kvp.Value));
+                first = false;
+            }
+            sb.Append("}");
+            return sb.ToString();
+        }
+        else
+        {
+            // Fallback: try to serialize as string or use ToString
+            return SerializeValue(value.ToString());
+        }
+    }
+
     private MCPResponse ParseJsonResponse(string json)
     {
-        // Simple JSON parser for Unity - in a production environment, consider using a proper JSON library
         var response = new MCPResponse();
         
-        // Extract id
-        var idMatch = System.Text.RegularExpressions.Regex.Match(json, @"""id""\s*:\s*(\d+)");
-        if (idMatch.Success)
+        try
         {
-            response.id = int.Parse(idMatch.Groups[1].Value);
-        }
+            // Use Unity's JsonUtility where possible, but we need to handle nested structures manually
+            // First extract basic fields
+            var idMatch = System.Text.RegularExpressions.Regex.Match(json, @"""id""\s*:\s*(\d+)");
+            if (idMatch.Success)
+            {
+                response.id = int.Parse(idMatch.Groups[1].Value);
+            }
 
-        // Extract result (simplified - assumes result is a simple object or string)
-        if (json.Contains("\"result\""))
+            // Extract jsonrpc version
+            var jsonrpcMatch = System.Text.RegularExpressions.Regex.Match(json, @"""jsonrpc""\s*:\s*""([^""]+)""");
+            if (jsonrpcMatch.Success)
+            {
+                response.jsonrpc = jsonrpcMatch.Groups[1].Value;
+            }
+
+            // Parse result object if present
+            if (json.Contains("\"result\""))
+            {
+                response.result = new Dictionary<string, object>();
+                
+                // Try to extract the result object using regex
+                var resultMatch = System.Text.RegularExpressions.Regex.Match(json, @"""result""\s*:\s*(\{.*?\})(?=,""|})", System.Text.RegularExpressions.RegexOptions.Singleline);
+                if (resultMatch.Success)
+                {
+                    var resultJson = resultMatch.Groups[1].Value;
+                    response.result = ParseJsonObject(resultJson);
+                }
+                else
+                {
+                    // Try simpler extraction - look for content array
+                    if (json.Contains("\"content\""))
+                    {
+                        // Extract content array
+                        var contentMatch = System.Text.RegularExpressions.Regex.Match(json, @"""content""\s*:\s*(\[.*?\])", System.Text.RegularExpressions.RegexOptions.Singleline);
+                        if (contentMatch.Success)
+                        {
+                            response.result["content"] = ParseJsonArray(contentMatch.Groups[1].Value);
+                        }
+                    }
+                    
+                    // Also try to get tools array if present
+                    if (json.Contains("\"tools\""))
+                    {
+                        var toolsMatch = System.Text.RegularExpressions.Regex.Match(json, @"""tools""\s*:\s*(\[.*?\])", System.Text.RegularExpressions.RegexOptions.Singleline);
+                        if (toolsMatch.Success)
+                        {
+                            response.result["tools"] = ParseJsonArray(toolsMatch.Groups[1].Value);
+                        }
+                    }
+                }
+            }
+
+            // Parse error if present
+            if (json.Contains("\"error\""))
+            {
+                response.error = new MCPError();
+                var codeMatch = System.Text.RegularExpressions.Regex.Match(json, @"""code""\s*:\s*(-?\d+)");
+                if (codeMatch.Success)
+                {
+                    response.error.code = int.Parse(codeMatch.Groups[1].Value);
+                }
+                var messageMatch = System.Text.RegularExpressions.Regex.Match(json, @"""message""\s*:\s*""([^""]+)""");
+                if (messageMatch.Success)
+                {
+                    response.error.message = messageMatch.Groups[1].Value;
+                }
+            }
+        }
+        catch (Exception ex)
         {
-            response.result = new Dictionary<string, object>();
-            // For full implementation, you'd want proper JSON parsing here
-            // This is a simplified version for Unity compatibility
+            Debug.LogWarning($"MCPClient: Failed to parse JSON response: {ex.Message}");
+            Debug.LogWarning($"JSON was: {json}");
         }
 
         return response;
+    }
+
+    private Dictionary<string, object> ParseJsonObject(string json)
+    {
+        var result = new Dictionary<string, object>();
+        
+        try
+        {
+            // Improved parser that handles nested objects and arrays
+            var keyPattern = @"""([^""]+)""\s*:\s*";
+            var matches = System.Text.RegularExpressions.Regex.Matches(json, keyPattern);
+            
+            for (int i = 0; i < matches.Count; i++)
+            {
+                var keyMatch = matches[i];
+                var key = keyMatch.Groups[1].Value;
+                
+                // Find the start position of the value
+                var valueStart = keyMatch.Index + keyMatch.Length;
+                
+                // Find where the value ends (either comma, closing brace, or end of string)
+                int valueEnd = valueStart;
+                int depth = 0;
+                bool inString = false;
+                bool escaped = false;
+                
+                for (int j = valueStart; j < json.Length; j++)
+                {
+                    char c = json[j];
+                    
+                    if (escaped)
+                    {
+                        escaped = false;
+                        continue;
+                    }
+                    
+                    if (c == '\\')
+                    {
+                        escaped = true;
+                        continue;
+                    }
+                    
+                    if (c == '"')
+                    {
+                        inString = !inString;
+                        continue;
+                    }
+                    
+                    if (!inString)
+                    {
+                        if (c == '{' || c == '[')
+                            depth++;
+                        else if (c == '}' || c == ']')
+                            depth--;
+                        else if ((c == ',' || c == '}') && depth == 0)
+                        {
+                            valueEnd = j;
+                            break;
+                        }
+                    }
+                }
+                
+                if (valueEnd == valueStart)
+                    valueEnd = json.Length;
+                
+                var valueStr = json.Substring(valueStart, valueEnd - valueStart).Trim();
+                
+                // Parse the value based on its type
+                if (valueStr.StartsWith("\"") && valueStr.EndsWith("\""))
+                {
+                    // String value - unescape
+                    result[key] = valueStr.Substring(1, valueStr.Length - 2)
+                        .Replace("\\\"", "\"").Replace("\\n", "\n").Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\\", "\\");
+                }
+                else if (valueStr.StartsWith("[") && valueStr.EndsWith("]"))
+                {
+                    // Array value
+                    result[key] = ParseJsonArray(valueStr);
+                }
+                else if (valueStr.StartsWith("{") && valueStr.EndsWith("}"))
+                {
+                    // Nested object
+                    result[key] = ParseJsonObject(valueStr);
+                }
+                else if (valueStr == "true" || valueStr == "false")
+                {
+                    result[key] = valueStr == "true";
+                }
+                else if (valueStr == "null")
+                {
+                    result[key] = null;
+                }
+                else if (int.TryParse(valueStr, out int intVal))
+                {
+                    result[key] = intVal;
+                }
+                else if (float.TryParse(valueStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float floatVal))
+                {
+                    result[key] = floatVal;
+                }
+                else
+                {
+                    result[key] = valueStr;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"MCPClient: Error parsing JSON object: {ex.Message}");
+        }
+        
+        return result;
+    }
+
+    private List<object> ParseJsonArray(string json)
+    {
+        var result = new List<object>();
+        
+        try
+        {
+            // Remove outer brackets
+            if (json.StartsWith("[") && json.EndsWith("]"))
+            {
+                json = json.Substring(1, json.Length - 2).Trim();
+            }
+            
+            if (string.IsNullOrEmpty(json))
+                return result;
+            
+            // Parse array elements - they can be objects, strings, numbers, etc.
+            int depth = 0;
+            int start = 0;
+            bool inString = false;
+            bool escaped = false;
+            
+            for (int i = 0; i < json.Length; i++)
+            {
+                char c = json[i];
+                
+                if (escaped)
+                {
+                    escaped = false;
+                    continue;
+                }
+                
+                if (c == '\\')
+                {
+                    escaped = true;
+                    continue;
+                }
+                
+                if (c == '"')
+                {
+                    inString = !inString;
+                    continue;
+                }
+                
+                if (!inString)
+                {
+                    if (c == '{' || c == '[')
+                        depth++;
+                    else if (c == '}' || c == ']')
+                        depth--;
+                    else if (c == ',' && depth == 0)
+                    {
+                        // Found an element boundary
+                        var elementStr = json.Substring(start, i - start).Trim();
+                        if (!string.IsNullOrEmpty(elementStr))
+                        {
+                            result.Add(ParseArrayElement(elementStr));
+                        }
+                        start = i + 1;
+                    }
+                }
+            }
+            
+            // Add the last element
+            if (start < json.Length)
+            {
+                var elementStr = json.Substring(start).Trim();
+                if (!string.IsNullOrEmpty(elementStr))
+                {
+                    result.Add(ParseArrayElement(elementStr));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"MCPClient: Error parsing JSON array: {ex.Message}");
+        }
+        
+        return result;
+    }
+    
+    private object ParseArrayElement(string elementStr)
+    {
+        elementStr = elementStr.Trim();
+        
+        if (elementStr.StartsWith("{") && elementStr.EndsWith("}"))
+        {
+            return ParseJsonObject(elementStr);
+        }
+        else if (elementStr.StartsWith("\"") && elementStr.EndsWith("\""))
+        {
+            return elementStr.Substring(1, elementStr.Length - 2)
+                .Replace("\\\"", "\"").Replace("\\n", "\n").Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\\", "\\");
+        }
+        else if (elementStr == "true" || elementStr == "false")
+        {
+            return elementStr == "true";
+        }
+        else if (int.TryParse(elementStr, out int intVal))
+        {
+            return intVal;
+        }
+        else if (float.TryParse(elementStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float floatVal))
+        {
+            return floatVal;
+        }
+        else
+        {
+            return elementStr;
+        }
     }
 
     private async Task<MCPResponse> SendHttpRequestAsync(MCPRequest request, CancellationToken ct)
     {
         using (var uwr = new UnityEngine.Networking.UnityWebRequest(serverUrl, "POST"))
         {
-            var json = JsonUtility.ToJson(request);
+            var json = BuildJsonRequest(request);
             byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
             uwr.uploadHandler = new UnityEngine.Networking.UploadHandlerRaw(bodyRaw);
             uwr.downloadHandler = new UnityEngine.Networking.DownloadHandlerBuffer();
@@ -452,7 +806,8 @@ public class MCPClient
         {
             lock (lockObject)
             {
-                stdioProcess.StandardInput.WriteLine(JsonUtility.ToJson(request));
+                var json = BuildJsonRequest(request);
+                stdioProcess.StandardInput.WriteLine(json);
                 stdioProcess.StandardInput.Flush();
             }
         }
