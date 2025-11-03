@@ -1,0 +1,21 @@
+{
+  "name": "com.yourname.coplay_orchestrator",
+  "version": "0.6.0",
+  "displayName": "Coplay Orchestrator Plugin (Claude+GPT+Gemini+LMStudio+MCP)",
+  "description": "Unity Editor plugin with multi-model orchestrator (Claude, OpenAI GPT, Gemini Pro 2.5, LM Studio) + MCP support + command router, pipelines, undo/redo and settings.",
+  "unity": "2020.3",
+  "keywords": [
+    "editor",
+    "ai",
+    "orchestrator",
+    "claude",
+    "gpt",
+    "gemini",
+    "lmstudio",
+    "local-llm",
+    "mcp",
+    "model-context-protocol",
+    "pipeline"
+  ],
+  "author": "generated-by-chatgpt"
+}
