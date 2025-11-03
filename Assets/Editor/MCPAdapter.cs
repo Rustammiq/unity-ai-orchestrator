@@ -14,10 +14,10 @@ public class MCPAdapter : ILLMProvider
     private readonly string serverName;
     public string ProviderName => $"MCP-{serverName}";
 
-    public MCPAdapter(string serverCommand = null, string serverArgs = null, string serverUrl = null, string serverName = "Server")
+    public MCPAdapter(string serverCommand = null, string serverArgs = null, string serverUrl = null, string serverName = "Server", Dictionary<string, string> envVars = null)
     {
         this.serverName = serverName;
-        this.client = new MCPClient(serverCommand, serverArgs, serverUrl);
+        this.client = new MCPClient(serverCommand, serverArgs, serverUrl, envVars);
     }
 
     public async Task<string> SendPromptAsync(string prompt, CancellationToken ct = default)

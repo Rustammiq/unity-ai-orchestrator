@@ -18,6 +18,7 @@ public class MCPClient
     private readonly string serverArgs;
     private readonly string serverUrl; // For HTTP-based MCP servers
     private readonly bool useStdio;
+    private readonly Dictionary<string, string> environmentVariables;
     private System.Diagnostics.Process stdioProcess;
     private readonly Queue<string> responseQueue = new Queue<string>();
     private readonly Queue<string> errorQueue = new Queue<string>();
@@ -27,11 +28,12 @@ public class MCPClient
     public bool IsConnected { get; private set; }
     public string ClientName => "Unity-AI-Orchestrator";
 
-    public MCPClient(string serverCommand = null, string serverArgs = null, string serverUrl = null)
+    public MCPClient(string serverCommand = null, string serverArgs = null, string serverUrl = null, Dictionary<string, string> envVars = null)
     {
         this.serverCommand = serverCommand;
         this.serverArgs = serverArgs;
         this.serverUrl = serverUrl;
+        this.environmentVariables = envVars ?? new Dictionary<string, string>();
         this.useStdio = !string.IsNullOrEmpty(serverCommand);
     }
 
@@ -67,16 +69,49 @@ public class MCPClient
     {
         try
         {
+            // Expand environment variables in command path if needed
+            var command = serverCommand;
+            if (command.Contains("$"))
+            {
+                command = Environment.ExpandEnvironmentVariables(command);
+            }
+
+            // Parse arguments - support both single string and space-separated arguments
+            var arguments = ParseArguments(serverArgs ?? "");
+
             var startInfo = new System.Diagnostics.ProcessStartInfo
             {
-                FileName = serverCommand,
-                Arguments = serverArgs ?? "",
+                FileName = command,
+                Arguments = arguments,
                 UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
+
+            // Set environment variables
+            foreach (var envVar in environmentVariables)
+            {
+                startInfo.EnvironmentVariables[envVar.Key] = envVar.Value;
+            }
+
+            // Also pass through important system environment variables
+            var importantEnvVars = new[] { "PATH", "HOME", "USER", "SHELL", "PYTHONPATH" };
+            foreach (var envVar in importantEnvVars)
+            {
+                var value = Environment.GetEnvironmentVariable(envVar);
+                if (!string.IsNullOrEmpty(value) && !startInfo.EnvironmentVariables.ContainsKey(envVar))
+                {
+                    startInfo.EnvironmentVariables[envVar] = value;
+                }
+            }
+
+            Debug.Log($"MCPClient: Starting process '{command}' with args '{arguments}'");
+            if (environmentVariables.Count > 0)
+            {
+                Debug.Log($"MCPClient: Environment variables: {string.Join(", ", environmentVariables.Keys)}");
+            }
 
             stdioProcess = System.Diagnostics.Process.Start(startInfo);
             if (stdioProcess == null)
@@ -89,7 +124,10 @@ public class MCPClient
             _ = Task.Run(() => ReadStdioOutput(), ct);
             _ = Task.Run(() => ReadStdioError(), ct);
 
-            Debug.Log($"MCPClient: Started process '{serverCommand}' with args '{serverArgs}'");
+            Debug.Log($"MCPClient: Process started successfully (PID: {stdioProcess.Id})");
+
+            // Wait a bit for process to initialize
+            await Task.Delay(500, ct);
 
             // Initialize protocol handshake
             var initRequest = new MCPRequest
@@ -926,6 +964,100 @@ public class MCPClient
             }
         }
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Parse arguments string - handles both simple space-separated and quoted arguments
+    /// Properly escapes arguments with spaces or special characters
+    /// </summary>
+    private string ParseArguments(string args)
+    {
+        if (string.IsNullOrWhiteSpace(args))
+            return "";
+
+        // If args already contains properly quoted arguments, return as-is
+        // Otherwise, we need to properly quote arguments that contain spaces
+        
+        // Check if args is already a JSON array string (from mcp.json format)
+        if (args.TrimStart().StartsWith("["))
+        {
+            // Try to parse as JSON array and convert to command-line arguments
+            try
+            {
+                // Simple parsing: remove brackets and split by comma, handling quotes
+                var cleanArgs = args.Trim().TrimStart('[').TrimEnd(']');
+                var parts = new List<string>();
+                bool inQuotes = false;
+                int start = 0;
+                
+                for (int i = 0; i < cleanArgs.Length; i++)
+                {
+                    char c = cleanArgs[i];
+                    
+                    if (c == '"')
+                    {
+                        inQuotes = !inQuotes;
+                    }
+                    else if (c == ',' && !inQuotes)
+                    {
+                        var part = cleanArgs.Substring(start, i - start).Trim();
+                        if (!string.IsNullOrEmpty(part))
+                        {
+                            // Remove surrounding quotes if present
+                            if (part.StartsWith("\"") && part.EndsWith("\""))
+                                part = part.Substring(1, part.Length - 2);
+                            parts.Add(part);
+                        }
+                        start = i + 1;
+                    }
+                }
+                
+                // Add last part
+                if (start < cleanArgs.Length)
+                {
+                    var part = cleanArgs.Substring(start).Trim();
+                    if (!string.IsNullOrEmpty(part))
+                    {
+                        if (part.StartsWith("\"") && part.EndsWith("\""))
+                            part = part.Substring(1, part.Length - 2);
+                        parts.Add(part);
+                    }
+                }
+                
+                if (parts.Count > 0)
+                {
+                    // Escape and join arguments properly
+                    var escapedParts = parts.Select(p => EscapeArgument(p));
+                    return string.Join(" ", escapedParts);
+                }
+            }
+            catch
+            {
+                // Fall through to default handling
+            }
+        }
+        
+        // Default: return as-is, ProcessStartInfo.Arguments will handle basic escaping
+        return args;
+    }
+
+    /// <summary>
+    /// Escape a single argument for command-line usage
+    /// </summary>
+    private string EscapeArgument(string arg)
+    {
+        if (string.IsNullOrEmpty(arg))
+            return "\"\"";
+
+        // If argument contains spaces or special characters, quote it
+        if (arg.Contains(" ") || arg.Contains("\t") || arg.Contains("\"") || arg.Contains("&") || arg.Contains("|"))
+        {
+            // Escape inner quotes and wrap in quotes
+            var escaped = arg.Replace("\"", "\\\"");
+            return $"\"{escaped}\"";
+        }
+
+        return arg;
     }
 
     public void Disconnect()
