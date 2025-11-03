@@ -63,6 +63,13 @@ Een complete Blender MCP server is inbegrepen! Zie `Assets/MCP/BLENDER_MCP_READM
 - ✅ **Data Duplicatie** (copy() voor alle datablocks)
 - ✅ **Library Management** (make_local, library info using ID properties)
 - ✅ **Data Informatie** (comprehensive ID properties: users, library, assets, etc.)
+- ✅ **User Management** (user_clear, user_of_id, user_remap)
+- ✅ **Scene & Collection Management** (create/delete/switch scenes, collection operations)
+- ✅ **Animation Data Management** (create/clear animation data)
+- ✅ **Library Overrides** (create overrides for linked datablocks)
+- ✅ **Mesh Operations** (subdivide, decimate, triangulate, quad/tri conversion)
+- ✅ **UV Operations** (smart unwrap, lightmap pack, island scaling)
+- ✅ **Texture Baking** (normal, diffuse, roughness, metallic, emission, AO, combined)
 
 ## Gebruik
 

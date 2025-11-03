@@ -279,6 +279,129 @@ class BlenderMCPServer:
                     },
                     "required": ["data_type", "data_name"]
                 }
+            },
+            {
+                "name": "manage_users",
+                "description": "Manage datablock users (remap, clear, find usage)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["CLEAR_USERS", "FIND_USERS", "USER_REMAP"]},
+                        "data_type": {"type": "string", "enum": ["OBJECT", "MATERIAL", "MESH", "TEXTURE"]},
+                        "data_name": {"type": "string"},
+                        "remap_old": {"type": "string"},
+                        "remap_new": {"type": "string"}
+                    },
+                    "required": ["action", "data_type", "data_name"]
+                }
+            },
+            {
+                "name": "manage_scenes",
+                "description": "Create, delete, or switch scenes",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["CREATE", "DELETE", "SWITCH"]},
+                        "scene_name": {"type": "string"},
+                        "template_scene": {"type": "string"}
+                    },
+                    "required": ["action", "scene_name"]
+                }
+            },
+            {
+                "name": "manage_collections",
+                "description": "Create/delete collections and manage object membership",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["CREATE", "DELETE", "ADD_OBJECT", "REMOVE_OBJECT", "LINK_OBJECT", "UNLINK_OBJECT"]},
+                        "collection_name": {"type": "string"},
+                        "object_name": {"type": "string"}
+                    },
+                    "required": ["action", "collection_name"]
+                }
+            },
+            {
+                "name": "manage_animation_data",
+                "description": "Create or clear animation data for datablocks",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["CREATE", "CLEAR"]},
+                        "data_type": {"type": "string", "enum": ["OBJECT", "MATERIAL", "MESH", "TEXTURE"]},
+                        "data_name": {"type": "string"}
+                    },
+                    "required": ["action", "data_type", "data_name"]
+                }
+            },
+            {
+                "name": "create_library_override",
+                "description": "Create library overrides for linked datablocks",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data_type": {"type": "string", "enum": ["OBJECT", "MATERIAL", "MESH", "TEXTURE"]},
+                        "data_name": {"type": "string"}
+                    },
+                    "required": ["data_type", "data_name"]
+                }
+            },
+            {
+                "name": "mesh_operations",
+                "description": "Perform mesh operations (subdivide, decimate, triangulate, etc.)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "object_name": {"type": "string"},
+                        "operation": {"type": "string", "enum": ["SUBDIVIDE", "DECIMATE", "TRIANGULATE", "QUAD_TO_TRI", "TRI_TO_QUAD"]},
+                        "iterations": {"type": "integer", "default": 1},
+                        "ratio": {"type": "number", "default": 0.5}
+                    },
+                    "required": ["object_name", "operation"]
+                }
+            },
+            {
+                "name": "uv_operations",
+                "description": "Perform UV operations (unwrap, pack islands, etc.)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "object_name": {"type": "string"},
+                        "operation": {"type": "string", "enum": ["SMART_UV_UNWRAP", "LIGHTMAP_PACK", "AVERAGE_ISLANDS_SCALE"]},
+                        "angle_limit": {"type": "number", "default": 66.0},
+                        "island_margin": {"type": "number", "default": 0.02},
+                        "user_area_weight": {"type": "number", "default": 0.0}
+                    },
+                    "required": ["object_name", "operation"]
+                }
+            },
+            {
+                "name": "bake_textures",
+                "description": "Bake textures (normal, diffuse, roughness, etc.)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "object_name": {"type": "string"},
+                        "bake_type": {"type": "string", "enum": ["NORMAL", "DIFFUSE", "ROUGHNESS", "METALLIC", "EMISSION", "AO", "COMBINED"]},
+                        "image_name": {"type": "string"},
+                        "width": {"type": "integer", "default": 1024},
+                        "height": {"type": "integer", "default": 1024},
+                        "margin": {"type": "integer", "default": 16}
+                    },
+                    "required": ["object_name", "bake_type", "image_name"]
+                }
+            },
+            {
+                "name": "preview_ensure",
+                "description": "Ensure preview images exist for datablocks",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data_type": {"type": "string", "enum": ["OBJECT", "MATERIAL", "MESH", "TEXTURE"]},
+                        "data_name": {"type": "string"}
+                    },
+                    "required": ["data_type", "data_name"]
+                }
             }
         ]
         
@@ -328,6 +451,24 @@ class BlenderMCPServer:
                 result = self.manage_library(arguments)
             elif tool_name == "get_data_info":
                 result = self.get_data_info(arguments)
+            elif tool_name == "manage_users":
+                result = self.manage_users(arguments)
+            elif tool_name == "manage_scenes":
+                result = self.manage_scenes(arguments)
+            elif tool_name == "manage_collections":
+                result = self.manage_collections(arguments)
+            elif tool_name == "manage_animation_data":
+                result = self.manage_animation_data(arguments)
+            elif tool_name == "create_library_override":
+                result = self.create_library_override(arguments)
+            elif tool_name == "mesh_operations":
+                result = self.mesh_operations(arguments)
+            elif tool_name == "uv_operations":
+                result = self.uv_operations(arguments)
+            elif tool_name == "bake_textures":
+                result = self.bake_textures(arguments)
+            elif tool_name == "preview_ensure":
+                result = self.preview_ensure(arguments)
             else:
                 return self.error_response(-32601, f"Unknown tool: {tool_name}")
             
@@ -716,6 +857,379 @@ class BlenderMCPServer:
             raise ValueError(f"Unsupported data type: {data_type}")
 
         return collections[data_type]
+
+    def manage_users(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Manage datablock users using ID.user_* methods"""
+        action = args.get("action").upper()
+        data_type = args.get("data_type").upper()
+        data_name = args.get("data_name")
+
+        data_collection = self._get_data_collection(data_type)
+        if data_name not in data_collection:
+            raise ValueError(f"{data_type} '{data_name}' not found")
+
+        data_block = data_collection[data_name]
+
+        if action == "CLEAR_USERS":
+            data_block.user_clear()
+            return {"success": True, "action": "cleared_users", "name": data_name}
+
+        elif action == "FIND_USERS":
+            users = data_block.user_of_id()
+            user_objects = []
+            for obj in users:
+                user_objects.append({
+                    "name": obj.name,
+                    "type": obj.type if hasattr(obj, 'type') else 'UNKNOWN'
+                })
+            return {"success": True, "users": user_objects, "count": len(user_objects)}
+
+        elif action == "USER_REMAP":
+            remap_old = args.get("remap_old")
+            remap_new = args.get("remap_new")
+
+            if not remap_old or not remap_new:
+                raise ValueError("remap_old and remap_new are required for USER_REMAP")
+
+            old_collection = self._get_data_collection(data_type)
+            new_collection = self._get_data_collection(data_type)
+
+            if remap_old not in old_collection or remap_new not in new_collection:
+                raise ValueError(f"Source '{remap_old}' or target '{remap_new}' not found")
+
+            data_block.user_remap(old_collection[remap_old], new_collection[remap_new])
+            return {"success": True, "action": "remapped_users", "from": remap_old, "to": remap_new}
+
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def manage_scenes(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Create, delete, or switch scenes"""
+        action = args.get("action").upper()
+        scene_name = args.get("scene_name")
+
+        if action == "CREATE":
+            template_scene = args.get("template_scene", bpy.context.scene.name)
+            if template_scene not in bpy.data.scenes:
+                raise ValueError(f"Template scene '{template_scene}' not found")
+
+            template = bpy.data.scenes[template_scene]
+            new_scene = bpy.data.scenes.new(scene_name)
+
+            # Copy basic settings from template
+            new_scene.world = template.world
+            new_scene.use_gravity = template.use_gravity
+            new_scene.gravity = template.gravity
+
+            return {"success": True, "action": "created_scene", "name": scene_name}
+
+        elif action == "DELETE":
+            if scene_name not in bpy.data.scenes:
+                raise ValueError(f"Scene '{scene_name}' not found")
+
+            if len(bpy.data.scenes) <= 1:
+                raise ValueError("Cannot delete the last scene")
+
+            scene = bpy.data.scenes[scene_name]
+            bpy.data.scenes.remove(scene)
+            return {"success": True, "action": "deleted_scene", "name": scene_name}
+
+        elif action == "SWITCH":
+            if scene_name not in bpy.data.scenes:
+                raise ValueError(f"Scene '{scene_name}' not found")
+
+            bpy.context.window.scene = bpy.data.scenes[scene_name]
+            return {"success": True, "action": "switched_scene", "name": scene_name}
+
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def manage_collections(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Create/delete collections and manage object membership"""
+        action = args.get("action").upper()
+        collection_name = args.get("collection_name")
+        object_name = args.get("object_name")
+
+        if action == "CREATE":
+            if collection_name in bpy.data.collections:
+                raise ValueError(f"Collection '{collection_name}' already exists")
+
+            collection = bpy.data.collections.new(collection_name)
+            bpy.context.scene.collection.children.link(collection)
+            return {"success": True, "action": "created_collection", "name": collection_name}
+
+        elif action == "DELETE":
+            if collection_name not in bpy.data.collections:
+                raise ValueError(f"Collection '{collection_name}' not found")
+
+            collection = bpy.data.collections[collection_name]
+            bpy.data.collections.remove(collection)
+            return {"success": True, "action": "deleted_collection", "name": collection_name}
+
+        else:
+            # Actions that require both collection and object
+            if not object_name:
+                raise ValueError(f"object_name required for action {action}")
+
+            if collection_name not in bpy.data.collections:
+                raise ValueError(f"Collection '{collection_name}' not found")
+
+            if object_name not in bpy.data.objects:
+                raise ValueError(f"Object '{object_name}' not found")
+
+            collection = bpy.data.collections[collection_name]
+            obj = bpy.data.objects[object_name]
+
+            if action == "ADD_OBJECT":
+                if obj.name not in collection.objects:
+                    collection.objects.link(obj)
+                return {"success": True, "action": "added_object", "collection": collection_name, "object": object_name}
+
+            elif action == "REMOVE_OBJECT":
+                if obj.name in collection.objects:
+                    collection.objects.unlink(obj)
+                return {"success": True, "action": "removed_object", "collection": collection_name, "object": object_name}
+
+            elif action == "LINK_OBJECT":
+                if obj.name not in collection.objects:
+                    collection.objects.link(obj)
+                return {"success": True, "action": "linked_object", "collection": collection_name, "object": object_name}
+
+            elif action == "UNLINK_OBJECT":
+                if obj.name in collection.objects:
+                    collection.objects.unlink(obj)
+                return {"success": True, "action": "unlinked_object", "collection": collection_name, "object": object_name}
+
+            else:
+                raise ValueError(f"Unknown action: {action}")
+
+    def manage_animation_data(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Create or clear animation data for datablocks"""
+        action = args.get("action").upper()
+        data_type = args.get("data_type").upper()
+        data_name = args.get("data_name")
+
+        data_collection = self._get_data_collection(data_type)
+        if data_name not in data_collection:
+            raise ValueError(f"{data_type} '{data_name}' not found")
+
+        data_block = data_collection[data_name]
+
+        if action == "CREATE":
+            if not data_block.animation_data:
+                data_block.animation_data_create()
+            return {"success": True, "action": "created_animation_data", "name": data_name}
+
+        elif action == "CLEAR":
+            if data_block.animation_data:
+                data_block.animation_data_clear()
+            return {"success": True, "action": "cleared_animation_data", "name": data_name}
+
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+    def create_library_override(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Create library overrides for linked datablocks"""
+        data_type = args.get("data_type").upper()
+        data_name = args.get("data_name")
+
+        data_collection = self._get_data_collection(data_type)
+        if data_name not in data_collection:
+            raise ValueError(f"{data_type} '{data_name}' not found")
+
+        data_block = data_collection[data_name]
+
+        # Check if it's a linked datablock
+        if not data_block.library:
+            raise ValueError(f"{data_type} '{data_name}' is not a linked datablock")
+
+        # Create library override
+        override = data_block.override_create(remap_local_usages=True)
+        return {
+            "success": True,
+            "action": "created_library_override",
+            "name": data_name,
+            "override_name": override.name if hasattr(override, 'name') else data_name
+        }
+
+    def mesh_operations(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform mesh operations like subdivide, decimate, etc."""
+        object_name = args.get("object_name")
+        operation = args.get("operation").upper()
+        iterations = args.get("iterations", 1)
+        ratio = args.get("ratio", 0.5)
+
+        if object_name not in bpy.data.objects:
+            raise ValueError(f"Object '{object_name}' not found")
+
+        obj = bpy.data.objects[object_name]
+        if obj.type != 'MESH':
+            raise ValueError(f"Object '{object_name}' is not a mesh")
+
+        # Ensure we're in object mode and select the object
+        bpy.ops.object.select_all(action='DESELECT')
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+
+        # Switch to edit mode for mesh operations
+        bpy.ops.object.mode_set(mode='EDIT')
+
+        if operation == "SUBDIVIDE":
+            bpy.ops.mesh.subdivide(number_cuts=iterations)
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return {"success": True, "operation": "subdivided", "iterations": iterations}
+
+        elif operation == "DECIMATE":
+            bpy.ops.mesh.decimate(ratio=ratio)
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return {"success": True, "operation": "decimated", "ratio": ratio}
+
+        elif operation == "TRIANGULATE":
+            bpy.ops.mesh.quads_convert_to_tris()
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return {"success": True, "operation": "triangulated"}
+
+        elif operation == "QUAD_TO_TRI":
+            bpy.ops.mesh.quads_convert_to_tris()
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return {"success": True, "operation": "quad_to_tri"}
+
+        elif operation == "TRI_TO_QUAD":
+            bpy.ops.mesh.tris_convert_to_quads()
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return {"success": True, "operation": "tri_to_quad"}
+
+        else:
+            bpy.ops.object.mode_set(mode='OBJECT')
+            raise ValueError(f"Unknown mesh operation: {operation}")
+
+    def uv_operations(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform UV operations like unwrap, pack islands"""
+        object_name = args.get("object_name")
+        operation = args.get("operation").upper()
+        angle_limit = args.get("angle_limit", 66.0)
+        island_margin = args.get("island_margin", 0.02)
+        user_area_weight = args.get("user_area_weight", 0.0)
+
+        if object_name not in bpy.data.objects:
+            raise ValueError(f"Object '{object_name}' not found")
+
+        obj = bpy.data.objects[object_name]
+        if obj.type != 'MESH':
+            raise ValueError(f"Object '{object_name}' is not a mesh")
+
+        # Ensure we're in edit mode with UV editor
+        bpy.ops.object.select_all(action='DESELECT')
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+
+        # Switch to edit mode
+        bpy.ops.object.mode_set(mode='EDIT')
+
+        # Select all faces
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        if operation == "SMART_UV_UNWRAP":
+            bpy.ops.uv.smart_project(angle_limit=angle_limit, island_margin=island_margin, user_area_weight=user_area_weight)
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return {"success": True, "operation": "smart_uv_unwrap", "angle_limit": angle_limit}
+
+        elif operation == "LIGHTMAP_PACK":
+            bpy.ops.uv.lightmap_pack()
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return {"success": True, "operation": "lightmap_pack"}
+
+        elif operation == "AVERAGE_ISLANDS_SCALE":
+            bpy.ops.uv.average_islands_scale()
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return {"success": True, "operation": "average_islands_scale"}
+
+        else:
+            bpy.ops.object.mode_set(mode='OBJECT')
+            raise ValueError(f"Unknown UV operation: {operation}")
+
+    def bake_textures(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Bake textures using Cycles bake system"""
+        object_name = args.get("object_name")
+        bake_type = args.get("bake_type").upper()
+        image_name = args.get("image_name")
+        width = args.get("width", 1024)
+        height = args.get("height", 1024)
+        margin = args.get("margin", 16)
+
+        if object_name not in bpy.data.objects:
+            raise ValueError(f"Object '{object_name}' not found")
+
+        obj = bpy.data.objects[object_name]
+        if obj.type != 'MESH':
+            raise ValueError(f"Object '{object_name}' is not a mesh")
+
+        # Create or get image
+        if image_name in bpy.data.images:
+            image = bpy.data.images[image_name]
+        else:
+            image = bpy.data.images.new(image_name, width=width, height=height)
+
+        # Ensure Cycles is active
+        bpy.context.scene.render.engine = 'CYCLES'
+
+        # Setup bake settings
+        bpy.context.scene.cycles.bake_type = bake_type.lower()
+
+        # Select object and set active
+        bpy.ops.object.select_all(action='DESELECT')
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+
+        # Create UV map if it doesn't exist
+        if not obj.data.uv_layers:
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.uv.smart_project()
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        # Set the image in the active UV layer
+        uv_layer = obj.data.uv_layers.active
+        if uv_layer:
+            for face in obj.data.polygons:
+                for loop_index in face.loop_indices:
+                    uv_layer.data[loop_index].image = image
+
+        # Bake
+        bpy.ops.object.bake(type=bake_type, margin=margin)
+
+        # Save the image
+        image.filepath_raw = f"//{image_name}.png"
+        image.save()
+
+        return {
+            "success": True,
+            "operation": "baked_texture",
+            "bake_type": bake_type,
+            "image_name": image_name,
+            "resolution": f"{width}x{height}"
+        }
+
+    def preview_ensure(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure preview images exist for datablocks using ID.preview_ensure()"""
+        data_type = args.get("data_type").upper()
+        data_name = args.get("data_name")
+
+        data_collection = self._get_data_collection(data_type)
+        if data_name not in data_collection:
+            raise ValueError(f"{data_type} '{data_name}' not found")
+
+        data_block = data_collection[data_name]
+
+        # Ensure preview exists
+        data_block.preview_ensure()
+
+        return {
+            "success": True,
+            "action": "preview_ensured",
+            "name": data_name,
+            "has_preview": data_block.preview is not None
+        }
 
     def error_response(self, code: int, message: str, data: Optional[str] = None) -> Dict[str, Any]:
         """Create error response"""

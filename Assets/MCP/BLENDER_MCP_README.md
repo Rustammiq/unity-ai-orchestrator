@@ -72,6 +72,23 @@ De Blender MCP server ondersteunt de volgende operaties:
 - **copy_data**: Dupliceer datablocks (ID.copy())
 - **manage_library**: Make local, get library info (ID.make_local, ID.library)
 - **get_data_info**: Comprehensive datablock info (alle ID properties)
+- **manage_users**: User management (clear, find, remap) (ID.user_clear/user_of_id/user_remap)
+- **preview_ensure**: Zorg voor preview images (ID.preview_ensure)
+
+### Scene & Collection Management
+- **manage_scenes**: Create/delete/switch scenes
+- **manage_collections**: Create/delete collections, add/remove/link/unlink objects
+
+### Animation & Library Overrides
+- **manage_animation_data**: Create/clear animation data (ID.animation_data_create/clear)
+- **create_library_override**: Create library overrides voor linked datablocks
+
+### Mesh & UV Operations
+- **mesh_operations**: Subdivide, decimate, triangulate, quad/tri conversion
+- **uv_operations**: Smart UV unwrap, lightmap pack, island scaling
+
+### Texture Baking
+- **bake_textures**: Bake normal, diffuse, roughness, metallic, emission, AO, combined textures
 
 ## Voorbeeld Gebruik
 
@@ -193,6 +210,36 @@ Dupliceer een object: Kopieer het "Cube" object naar "CubeCopy"
 ### Voorbeeld 8: Library Management
 ```
 Maak data lokaal: Maak het gelinkte object "LinkedCube" lokaal
+```
+
+### Voorbeeld 9: User Management
+```
+Zoek welke objecten material "RedPlastic" gebruiken: Vind alle gebruikers van het "RedPlastic" material
+```
+
+### Voorbeeld 10: Scene Management
+```
+Maak nieuwe scene: Creëer een scene genaamd "GameLevel" gebaseerd op "Scene"
+```
+
+### Voorbeeld 11: Collection Management
+```
+Voeg object toe aan collection: Voeg "PlayerModel" toe aan collection "Characters"
+```
+
+### Voorbeeld 12: Mesh Operations
+```
+Subdivideer mesh: Subdivideer het "Cube" object 2 keer
+```
+
+### Voorbeeld 13: UV Unwrapping
+```
+Unwrap UVs: Doe smart UV unwrap voor het "Character" object met angle limit 45
+```
+
+### Voorbeeld 14: Texture Baking
+```
+Bake normal map: Bake een normal map voor "BakedModel" naar "NormalMap" image (2048x2048)
 ```
 
 ## Unity Integration Code
