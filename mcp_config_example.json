@@ -1,0 +1,34 @@
+{
+  "unity-blender-mcp-working": {
+    "_doc": "Unity Blender MCP Server - Working configuratie (via Blender wrapper)",
+    "command": "/Applications/Blender.app/Contents/MacOS/Blender",
+    "args": [
+      "--background",
+      "--python",
+      "/Users/innovars_lab/Downloads/coplay_orchestrator_v4/Assets/MCP/blender_mcp_server.py"
+    ],
+    "env": {
+      "HYPER3D_RODIN_API_KEY": "k9TcfFoEhNd9cCPP2guHAHHHkctZHIRhZDywZ1euGUXwihbYLpOjQhofby80NJez",
+      "RODIN_FREE_TRIAL_KEY": "k9TcfFoEhNd9cCPP2guHAHHHkctZHIRhZDywZ1euGUXwihbYLpOjQhofby80NJez"
+    },
+    "disabled": false
+  },
+  "unity-blender-mcp-wrapper": {
+    "_doc": "Unity Blender MCP Server - Via wrapper script (macOS/Linux)",
+    "command": "/bin/bash",
+    "args": [
+      "/Users/innovars_lab/Downloads/coplay_orchestrator_v4/Assets/MCP/blender_mcp_wrapper.sh"
+    ],
+    "env": {},
+    "disabled": false
+  },
+  "unity-github-mcp-working": {
+    "_doc": "Unity GitHub MCP Server - Working (replica van bestaande)",
+    "command": "python3",
+    "args": [
+      "/Users/innovars_lab/Downloads/coplay_orchestrator_v4/Assets/MCP/github_mcp_example.py"
+    ],
+    "env": {},
+    "disabled": false
+  }
+}

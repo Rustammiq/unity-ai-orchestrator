@@ -1,0 +1,25 @@
+{
+  "_comment": "Voeg deze entries toe aan je mcp.json bestand onder 'mcpServers'",
+  "unity-blender-mcp-v2": {
+    "_doc": "Unity Blender MCP Server - Verbeterde versie met betere error handling",
+    "command": "/Applications/Blender.app/Contents/MacOS/Blender",
+    "args": [
+      "--background",
+      "--python",
+      "/Users/innovars_lab/Downloads/coplay_orchestrator_v4/Assets/MCP/blender_mcp_server.py"
+    ],
+    "env": {},
+    "disabled": false
+  },
+  "unity-github-mcp-updated": {
+    "_doc": "Unity GitHub MCP Server - Updated versie (replica van werkende versie)",
+    "command": "python3",
+    "args": [
+      "/Users/innovars_lab/Downloads/coplay_orchestrator_v4/Assets/MCP/github_mcp_example.py"
+    ],
+    "env": {
+      "GITHUB_TOKEN": ""
+    },
+    "disabled": false
+  }
+}
