@@ -1,18 +1,18 @@
 using UnityEditor;
 using UnityEngine;
 
-public class CoplaySettingsWindow : EditorWindow
+public class UnityAISettingsWindow : EditorWindow
 {
     private string anthropicKey;
     private string openaiKey;
     private string geminiKey;
-    
+
     // LM Studio Settings
     private bool lmStudioEnabled;
     private string lmStudioUrl;
     private string lmStudioModel;
     private string lmStudioAuthHeader;
-    
+
     // MCP Settings
     private bool mcpEnabled;
     private string mcpServerCommand;
@@ -21,28 +21,28 @@ public class CoplaySettingsWindow : EditorWindow
     private string mcpServerName;
     private bool mcpUseHttp;
 
-    [MenuItem("Window/Coplay Orchestrator/Settings")]
-    public static void ShowWindow() => GetWindow<CoplaySettingsWindow>("Coplay Settings");
+    [MenuItem("Window/Unity AI Orchestrator/Settings")]
+    public static void ShowWindow() => GetWindow<UnityAISettingsWindow>("Unity AI Settings");
 
     private void OnEnable()
     {
-        anthropicKey = EditorPrefs.GetString("coplay_anthropic_api_key", "");
-        openaiKey = EditorPrefs.GetString("coplay_openai_api_key", "");
-        geminiKey = EditorPrefs.GetString("coplay_gemini_api_key", "");
-        
+        anthropicKey = EditorPrefs.GetString("unityai_anthropic_api_key", "");
+        openaiKey = EditorPrefs.GetString("unityai_openai_api_key", "");
+        geminiKey = EditorPrefs.GetString("unityai_gemini_api_key", "");
+
         // Load LM Studio settings
-        lmStudioEnabled = EditorPrefs.GetBool("coplay_lmstudio_enabled", false);
-        lmStudioUrl = EditorPrefs.GetString("coplay_lmstudio_url", "http://localhost:1234/v1/chat/completions");
-        lmStudioModel = EditorPrefs.GetString("coplay_lmstudio_model", "");
-        lmStudioAuthHeader = EditorPrefs.GetString("coplay_lmstudio_auth_header", "");
-        
+        lmStudioEnabled = EditorPrefs.GetBool("unityai_lmstudio_enabled", false);
+        lmStudioUrl = EditorPrefs.GetString("unityai_lmstudio_url", "http://localhost:1234/v1/chat/completions");
+        lmStudioModel = EditorPrefs.GetString("unityai_lmstudio_model", "");
+        lmStudioAuthHeader = EditorPrefs.GetString("unityai_lmstudio_auth_header", "");
+
         // Load MCP settings
-        mcpEnabled = EditorPrefs.GetBool("coplay_mcp_enabled", false);
-        mcpServerCommand = EditorPrefs.GetString("coplay_mcp_server_command", "");
-        mcpServerArgs = EditorPrefs.GetString("coplay_mcp_server_args", "");
-        mcpServerUrl = EditorPrefs.GetString("coplay_mcp_server_url", "");
-        mcpServerName = EditorPrefs.GetString("coplay_mcp_server_name", "MCP Server");
-        mcpUseHttp = EditorPrefs.GetBool("coplay_mcp_use_http", false);
+        mcpEnabled = EditorPrefs.GetBool("unityai_mcp_enabled", false);
+        mcpServerCommand = EditorPrefs.GetString("unityai_mcp_server_command", "");
+        mcpServerArgs = EditorPrefs.GetString("unityai_mcp_server_args", "");
+        mcpServerUrl = EditorPrefs.GetString("unityai_mcp_server_url", "");
+        mcpServerName = EditorPrefs.GetString("unityai_mcp_server_name", "MCP Server");
+        mcpUseHttp = EditorPrefs.GetBool("unityai_mcp_use_http", false);
     }
 
     private void OnGUI()
@@ -104,24 +104,24 @@ public class CoplaySettingsWindow : EditorWindow
 
     private void Save()
     {
-        EditorPrefs.SetString("coplay_anthropic_api_key", anthropicKey);
-        EditorPrefs.SetString("coplay_openai_api_key", openaiKey);
-        EditorPrefs.SetString("coplay_gemini_api_key", geminiKey);
-        
+        EditorPrefs.SetString("unityai_anthropic_api_key", anthropicKey);
+        EditorPrefs.SetString("unityai_openai_api_key", openaiKey);
+        EditorPrefs.SetString("unityai_gemini_api_key", geminiKey);
+
         // Save LM Studio settings
-        EditorPrefs.SetBool("coplay_lmstudio_enabled", lmStudioEnabled);
-        EditorPrefs.SetString("coplay_lmstudio_url", lmStudioUrl);
-        EditorPrefs.SetString("coplay_lmstudio_model", lmStudioModel);
-        EditorPrefs.SetString("coplay_lmstudio_auth_header", lmStudioAuthHeader);
-        
+        EditorPrefs.SetBool("unityai_lmstudio_enabled", lmStudioEnabled);
+        EditorPrefs.SetString("unityai_lmstudio_url", lmStudioUrl);
+        EditorPrefs.SetString("unityai_lmstudio_model", lmStudioModel);
+        EditorPrefs.SetString("unityai_lmstudio_auth_header", lmStudioAuthHeader);
+
         // Save MCP settings
-        EditorPrefs.SetBool("coplay_mcp_enabled", mcpEnabled);
-        EditorPrefs.SetString("coplay_mcp_server_command", mcpServerCommand);
-        EditorPrefs.SetString("coplay_mcp_server_args", mcpServerArgs);
-        EditorPrefs.SetString("coplay_mcp_server_url", mcpServerUrl);
-        EditorPrefs.SetString("coplay_mcp_server_name", mcpServerName);
-        EditorPrefs.SetBool("coplay_mcp_use_http", mcpUseHttp);
-        
-        Debug.Log("Coplay settings saved in EditorPrefs.");
+        EditorPrefs.SetBool("unityai_mcp_enabled", mcpEnabled);
+        EditorPrefs.SetString("unityai_mcp_server_command", mcpServerCommand);
+        EditorPrefs.SetString("unityai_mcp_server_args", mcpServerArgs);
+        EditorPrefs.SetString("unityai_mcp_server_url", mcpServerUrl);
+        EditorPrefs.SetString("unityai_mcp_server_name", mcpServerName);
+        EditorPrefs.SetBool("unityai_mcp_use_http", mcpUseHttp);
+
+        Debug.Log("Unity AI settings saved in EditorPrefs.");
     }
 }

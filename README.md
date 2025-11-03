@@ -1,21 +1,21 @@
-# Coplay Orchestrator Plugin (v4)
+# Unity AI Orchestrator Plugin
 
 Deze plugin integreert vier LLM-providers (Claude, OpenAI GPT, Gemini Pro 2.5, LM Studio) via een centrale orchestrator,
 plus command-to-action mapping, undo/redo, pipeline recording, en **volledige Blender MCP integratie** voor 3D-workflows.
 
 ## Installatie
-1. Unzip `coplay_orchestrator_v4.zip`.
+1. Download de nieuwste release van GitHub.
 2. Kopieer de map `Assets` naar de root van je Unity project.
-3. Open Unity en ga naar `Window > Coplay Orchestrator`.
+3. Open Unity en ga naar `Window > Unity AI Orchestrator`.
 
 ## Configuratie
 
 ### API Keys
-- Open `Window > Coplay Orchestrator > Settings` om je API-keys in te vullen.
+- Open `Window > Unity AI Orchestrator > Settings` om je API-keys in te vullen.
 - Standaard opgeslagen in EditorPrefs onder:
-  - `coplay_anthropic_api_key`
-  - `coplay_openai_api_key`
-  - `coplay_gemini_api_key`
+  - `unityai_anthropic_api_key`
+  - `unityai_openai_api_key`
+  - `unityai_gemini_api_key`
 
 ### LM Studio (Lokale LLM) Configuratie
 LM Studio is een gratis lokale LLM server - perfect voor privacy en geen API costs!
@@ -23,7 +23,7 @@ LM Studio is een gratis lokale LLM server - perfect voor privacy en geen API cos
 1. Download en installeer [LM Studio](https://lmstudio.ai/)
 2. Open LM Studio en download een model (bijv. Llama 3, Mistral, etc.)
 3. Start de lokale server in LM Studio (klik op "Local Server")
-4. In Unity: `Window > Coplay Orchestrator > Settings`
+4. In Unity: `Window > Unity AI Orchestrator > Settings`
    - Schakel "Enable LM Studio" in
    - API URL: `http://localhost:1234/v1/chat/completions` (standaard)
    - Model Name: Laat leeg om het geladen model te gebruiken
@@ -34,7 +34,7 @@ Zie `Assets/Config/lmstudio_example.md` voor gedetailleerde instructies.
 ### MCP (Model Context Protocol) Configuratie
 De plugin ondersteunt nu MCP servers voor extra functionaliteit:
 
-1. Open `Window > Coplay Orchestrator > Settings`
+1. Open `Window > Unity AI Orchestrator > Settings`
 2. Schakel "Enable MCP" in
 3. Kies tussen twee modi:
    - **stdio**: Voor lokale MCP servers die via command-line draaien

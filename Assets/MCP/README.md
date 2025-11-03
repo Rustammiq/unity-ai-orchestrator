@@ -11,6 +11,22 @@ Een complete MCP server voor Blender 4.x is nu beschikbaar! Zie [BLENDER_MCP_REA
 2. Configureer in Unity Settings: stdio mode, gebruik de wrapper script
 3. Genereer 3D scenes via AI via Unity Orchestrator!
 
+## GitHub MCP Server (Voorbeeld)
+
+Een voorbeeld MCP server voor GitHub integratie: [github_mcp_example.py](./github_mcp_example.py)
+
+**Features:**
+- Issue aanmaken
+- Repository zoeken
+- Repository informatie opvragen
+- Pull request management (uitbreidbaar)
+
+**Configuratie:**
+```bash
+export GITHUB_TOKEN=your_github_token
+python github_mcp_example.py
+```
+
 ## MCP Servers
 
 MCP servers kunnen via twee methoden worden gebruikt:

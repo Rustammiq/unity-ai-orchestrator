@@ -24,7 +24,7 @@ public class MCPClient
     private readonly object lockObject = new object();
 
     public bool IsConnected { get; private set; }
-    public string ClientName => "Unity-Coplay-Orchestrator";
+    public string ClientName => "Unity-AI-Orchestrator";
 
     public MCPClient(string serverCommand = null, string serverArgs = null, string serverUrl = null)
     {

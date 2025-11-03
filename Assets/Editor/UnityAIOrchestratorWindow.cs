@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
-public class CoplayOrchestratorWindow : EditorWindow
+public class UnityAIOrchestratorWindow : EditorWindow
 {
     private string prompt = "";
     private string response = "";
@@ -15,27 +15,27 @@ public class CoplayOrchestratorWindow : EditorWindow
     private int modeIndex = 2; // 0=Solo,1=Dual,2=Tri,3=Quad (Claude+OpenAI+Gemini+LMStudio),4=Penta (+MCP)
     private bool recording = false;
 
-    [MenuItem("Window/Coplay Orchestrator")]
-    public static void ShowWindow() => GetWindow<CoplayOrchestratorWindow>("Coplay Orchestrator");
+    [MenuItem("Window/Unity AI Orchestrator")]
+    public static void ShowWindow() => GetWindow<UnityAIOrchestratorWindow>("Unity AI Orchestrator");
 
     private void OnEnable()
     {
         // Load keys from EditorPrefs
-        var anc = EditorPrefs.GetString("coplay_anthropic_api_key", "");
-        var oid = EditorPrefs.GetString("coplay_openai_api_key", "");
-        var gid = EditorPrefs.GetString("coplay_gemini_api_key", "");
+        var anc = EditorPrefs.GetString("unityai_anthropic_api_key", "");
+        var oid = EditorPrefs.GetString("unityai_openai_api_key", "");
+        var gid = EditorPrefs.GetString("unityai_gemini_api_key", "");
 
         claude = new ClaudeAdapter(anc);
         openai = new OpenAIAdapter(oid);
         gemini = new GeminiAdapter(gid);
 
         // Load LM Studio settings and create adapter if enabled
-        var lmStudioEnabled = EditorPrefs.GetBool("coplay_lmstudio_enabled", false);
+        var lmStudioEnabled = EditorPrefs.GetBool("unityai_lmstudio_enabled", false);
         if (lmStudioEnabled)
         {
-            var lmStudioUrl = EditorPrefs.GetString("coplay_lmstudio_url", "http://localhost:1234/v1/chat/completions");
-            var lmStudioModel = EditorPrefs.GetString("coplay_lmstudio_model", "");
-            var lmStudioAuthHeader = EditorPrefs.GetString("coplay_lmstudio_auth_header", "");
+            var lmStudioUrl = EditorPrefs.GetString("unityai_lmstudio_url", "http://localhost:1234/v1/chat/completions");
+            var lmStudioModel = EditorPrefs.GetString("unityai_lmstudio_model", "");
+            var lmStudioAuthHeader = EditorPrefs.GetString("unityai_lmstudio_auth_header", "");
             lmStudio = new LMStudioAdapter(lmStudioUrl, string.IsNullOrEmpty(lmStudioModel) ? null : lmStudioModel, string.IsNullOrEmpty(lmStudioAuthHeader) ? null : lmStudioAuthHeader);
         }
         else
@@ -44,14 +44,14 @@ public class CoplayOrchestratorWindow : EditorWindow
         }
 
         // Load MCP settings and create adapter if enabled
-        var mcpEnabled = EditorPrefs.GetBool("coplay_mcp_enabled", false);
+        var mcpEnabled = EditorPrefs.GetBool("unityai_mcp_enabled", false);
         if (mcpEnabled)
         {
-            var mcpCommand = EditorPrefs.GetString("coplay_mcp_server_command", "");
-            var mcpArgs = EditorPrefs.GetString("coplay_mcp_server_args", "");
-            var mcpUrl = EditorPrefs.GetString("coplay_mcp_server_url", "");
-            var mcpName = EditorPrefs.GetString("coplay_mcp_server_name", "MCP Server");
-            var mcpUseHttp = EditorPrefs.GetBool("coplay_mcp_use_http", false);
+            var mcpCommand = EditorPrefs.GetString("unityai_mcp_server_command", "");
+            var mcpArgs = EditorPrefs.GetString("unityai_mcp_server_args", "");
+            var mcpUrl = EditorPrefs.GetString("unityai_mcp_server_url", "");
+            var mcpName = EditorPrefs.GetString("unityai_mcp_server_name", "MCP Server");
+            var mcpUseHttp = EditorPrefs.GetBool("unityai_mcp_use_http", false);
 
             if (mcpUseHttp && !string.IsNullOrEmpty(mcpUrl))
             {
@@ -121,9 +121,9 @@ public class CoplayOrchestratorWindow : EditorWindow
         modeIndex = Mathf.Clamp(modeIndex, 0, maxIndex);
         var newIndex = GUILayout.Toolbar(modeIndex, modes);
         if (newIndex != modeIndex) { modeIndex = newIndex; RebuildOrchestrator(); }
-        if (GUILayout.Button("Settings", GUILayout.Width(80))) 
-        { 
-            CoplaySettingsWindow.ShowWindow();
+        if (GUILayout.Button("Settings", GUILayout.Width(80)))
+        {
+            UnityAISettingsWindow.ShowWindow();
             // Reload settings after settings window might have changed them
             OnEnable();
         }

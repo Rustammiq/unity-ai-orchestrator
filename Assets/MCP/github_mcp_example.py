@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 GitHub MCP Server Example
-Een MCP server voor GitHub integratie die zou kunnen werken met Coplay Orchestrator.
+Een MCP server voor GitHub integratie die zou kunnen werken met Unity AI Orchestrator.
 Dit is een voorbeeld van hoe je MCP zou kunnen gebruiken voor GitHub operaties.
 """
 

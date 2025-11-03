@@ -1,6 +1,6 @@
 # Blender 4.x MCP Server
 
-Een Master Control Processor (MCP) server voor Blender 4.x die via JSON-RPC 2.0 communiceert met Unity Coplay Orchestrator.
+Een Master Control Processor (MCP) server voor Blender 4.x die via JSON-RPC 2.0 communiceert met Unity AI Orchestrator.
 
 ## Installatie
 
@@ -21,7 +21,7 @@ Een Master Control Processor (MCP) server voor Blender 4.x die via JSON-RPC 2.0 
    ```
 
 4. **Configureren in Unity:**
-   - Open `Window > Coplay Orchestrator > Settings`
+   - Open `Window > Unity AI Orchestrator > Settings`
    - Schakel "Enable MCP" in
    - Selecteer "Use HTTP" = **OFF** (stdio mode)
    - Server Command: `/bin/bash` (of `bash.exe` op Windows)
@@ -71,7 +71,7 @@ De Blender MCP server ondersteunt de volgende operaties:
 
 ### Via Unity Orchestrator
 
-1. Open Unity en ga naar `Window > Coplay Orchestrator`
+1. Open Unity en ga naar `Window > Unity AI Orchestrator`
 2. Zorg dat MCP is geconfigureerd in Settings
 3. Selecteer "Penta" mode (met MCP enabled)
 4. Stuur een prompt zoals:
@@ -169,7 +169,7 @@ Export the scene as GLTF to //exported_scene.gltf using selection only
 ```
 
 ### Voorbeeld 5: Pipeline Recording
-1. Klik op "Start Recording" in Coplay Orchestrator
+1. Klik op "Start Recording" in Unity AI Orchestrator
 2. Voer meerdere Blender-acties uit via prompts
 3. Klik op "Stop Recording"
 4. Bekijk de opgenomen pipeline in `Assets/Pipelines/`
@@ -208,5 +208,5 @@ PipelineRecorder.RecordBlenderAction("create_object", new {
 - Achtergrondmodus is sneller dan GUI mode
 - Vermijd onnodige scene updates in scripts
 
-Deel van Coplay Orchestrator Plugin - gebruik zoals gedefinieerd in de hoofdlicentie.
+Deel van Unity AI Orchestrator Plugin - gebruik zoals gedefinieerd in de hoofdlicentie.
 

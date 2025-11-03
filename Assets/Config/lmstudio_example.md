@@ -11,7 +11,7 @@ LM Studio is een lokale LLM server die draait op je computer.
    - Klik op "Local Server" in de interface
    - Standaard draait op: `http://localhost:1234`
 5. Laad een model in LM Studio
-6. In Unity: `Window > Coplay Orchestrator > Settings`
+6. In Unity: `Window > Unity AI Orchestrator > Settings`
    - Schakel "Enable LM Studio" in
    - API URL: `http://localhost:1234/v1/chat/completions`
    - Model Name: Laat leeg (gebruikt het geladen model) of specificeer een model naam
