@@ -55,12 +55,14 @@ crashlytics-build.properties
 [Aa]ssets/[Ss]treamingAssets/aa.meta
 [Aa]ssets/[Ss]treamingAssets/aa/*
 
-# Coplay Orchestrator - API Keys en gevoelige data
+# Unity AI Orchestrator - API Keys en gevoelige data
 # (EditorPrefs worden niet gecommit, maar voor de zekerheid)
 *.key
 *.secret
 *api*.txt
 *api*.json
+unityai_*.txt
+unityai_*.json
 
 # Pipeline recordings kunnen grote bestanden zijn
 # Uncomment als je pipelines niet wilt committen
